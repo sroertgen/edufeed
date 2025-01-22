@@ -106,8 +106,6 @@
 
 (defn d-id-not-in-deleted-list-ids
   [d-id deleted-list-ids]
-  (println d-id
-           deleted-list-ids)
   (not (contains? deleted-list-ids d-id)))
 
 (defn most-recent-event-by-d-tag

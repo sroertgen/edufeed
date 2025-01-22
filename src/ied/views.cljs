@@ -303,10 +303,11 @@
           "Feed"]]
         [:li [:a {:on-click #(re-frame/dispatch [::events/navigate [:search-view]])}
               "Search"]]
-        [:li [:a  "My Network"]]
-        [:li  [:a {:on-click #(re-frame/dispatch [::events/navigate [:npub-view :npub (nostr/get-npub-from-pk @pk)]])}
-               "Bookmarks"]]
-        [:li [:a {:on-click #(re-frame/dispatch [::events/navigate [:opencard-view]])} "Opencard"]]]])))
+        #_[:li [:a  "My Network"]]
+        (when @pk
+          [:li  [:a {:on-click #(re-frame/dispatch [::events/navigate [:npub-view :npub (nostr/get-npub-from-pk @pk)]])}
+                 "Bookmarks"]])
+        #_[:li [:a {:on-click #(re-frame/dispatch [::events/navigate [:opencard-view]])} "Opencard"]]]])))
 
 ;; Home
 (defn home-panel []

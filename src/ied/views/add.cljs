@@ -6,7 +6,7 @@
             [ied.events :as events]
             [ied.components.icons :as icons]
             [ied.routes :as routes]
-            [ied.components.skos-multiselect :refer [skos-multiselect-component ]]))
+            [ied.components.skos-multiselect :refer [skos-multiselect-component]]))
 
 (def md-scheme-map
   {:amblight {:name {:title "Name"
@@ -81,8 +81,6 @@
                                 :schemes ["https://w3id.org/kim/hcrt/scheme"]}
          :about {:type :skos
                  :schemes ["https://w3id.org/kim/hochschulfaechersystematik/scheme"]}}})
-
-
 
 (defn array-fields-component [selected-md-scheme field field-title]
   (let [array-items-type (get-in selected-md-scheme [field :items :type])
@@ -187,15 +185,17 @@
                    (doall
                     (for [cs (keys concept-schemes)]
                       ^{:key cs} [skos-multiselect-component [(get concept-schemes cs)
-                                                                             field
-                                                                             field-title]])))
+                                                              field
+                                                              field-title]])))
                  (= :array field-type)
                  ^{:key field} [array-fields-component selected-md-scheme field field-title]
                  :else
                  [:p {:key field} "field type not found"]))))])
 
        [:button {:class "btn btn-warning w-1/2 mx-auto"
-                 :on-click #(re-frame/dispatch [::events/publish-resource])}
+                 :on-click #(do
+                              (re-frame/dispatch [::events/publish-resource])
+                              (re-frame/dispatch [::events/navigate [:home]]))}
         "Publish Resource"]])))
 
 (defn add-resource-by-json []
@@ -209,7 +209,9 @@
                     :on-change (fn [e]
                                  (swap! s assoc :json-string (-> e .-target .-value)))}]
         [:button {:class "btn btn-warning"
-                  :on-click #(re-frame/dispatch [::events/convert-amb-string-and-publish-as-nostr-event (:json-string @s)])}
+                  :on-click #(do
+                               (re-frame/dispatch [::events/convert-amb-string-and-publish-as-nostr-event (:json-string @s)])
+                               (re-frame/dispatch [::events/navigate [:home]]))}
          "Publish as Nostr Event"]]])))
 
 ;; TODO try again using xhrio

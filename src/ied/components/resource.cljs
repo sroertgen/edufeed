@@ -13,13 +13,12 @@
   (doall
    (for [about (nostr/get-about-names-from-metadata-event event)]
      [:div {:class "badge badge-primary m-1 truncate "
-            :key about} about])))
+            :key (str (:id event) about)} about])))
 
 (defn grouped-about-tags [[group-key values]]
   ;; group key is the identifier of the concept
   ;; values is an array of events that referenced the concept
-  (let [_ (println "values " values)
-        pubkeys (->> values
+  (let [pubkeys (->> values
                      (filter #(= "de" (:label-language %)))
                      (map :pubkey))
         profiles (re-frame/subscribe [::subs/profiles pubkeys])
@@ -46,8 +45,7 @@
                              :about-label {(keyword (nth e 3 "")) (nth e 2)}
                              :pubkey (:pubkey event)
                              :id (:id event)})
-                    tags)
-        _ (.log js/console "abouts " (clj->js abouts))]
+                    tags)]
     abouts))
 
 ;; Flatten and group by `about-id`
@@ -70,7 +68,6 @@
  ```
  "
   [events name]
-  (println "events array" events)
   (let [tags-array (map
                     (fn [e]
                       (filter #(= name (first %)) e))
