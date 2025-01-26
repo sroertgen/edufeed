@@ -28,7 +28,11 @@
    :resource-to-add nil
    :default-relays (concat
                     (if config/debug?
-                      [{:name "strfry-1"
+                      [{:name "relay-edu"
+                        :id (random-uuid)
+                        :uri "wss://relay-edu.edufeed.org"
+                        :status "disconnected"}
+                       {:name "strfry-1"
                         :uri "http://localhost:7777"
                         :id (random-uuid)
                         :status "disconnected"
@@ -45,10 +49,23 @@
                         :type ["outbox" "inbox"]}]
                       [{:name "SC24"
                         :uri "wss://relay.sc24.steffen-roertgen.de"
+                        :id (random-uuid)
                         :status "disconnected"
-                        :type ["outbox" "inbox"]}])
+                        :type ["outbox" "inbox"]}
+                      {:name "Relay HED"
+                        :uri "wss://relay-hed.edufeed.org"
+                        :id (random-uuid)
+                        :status "disconnected"
+                        :type ["outbox" "inbox"]} 
+                      {:name "Relay K12"
+                        :uri "wss://relay-k12.edufeed.org"
+                        :id (random-uuid)
+                        :status "disconnected"
+                        :type ["outbox" "inbox"]}
+                       ])
                     [{:name "Purplepages"
                       :uri "wss://purplepag.es"
+                      :id (random-uuid)
                       :status "disconnected"
                       :type ["search"]}])
    :selected-events #{}

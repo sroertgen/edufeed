@@ -100,12 +100,9 @@
  ::load-events-fx
  (fn [[ws-uri sockets]]
    (println "loading events")
-
    (let [target-ws (first (filter #(= ws-uri (:uri %)) sockets))]
      (ws/send (:socket target-ws) ["REQ" "424242" {:kinds [30004 30142]
-                                                   :limit 100}] fmt/json)
-     ; (ws/close (:socket (first @sockets))) ;; should be handled otherwise (?)
-     )))
+                                                   :limit 100}] fmt/json))))
 
 (defn create-socket
   [uri]
@@ -118,6 +115,7 @@
  ;;     :uri
  ;;     :name
  ;;     :status connected | disconnected | error}
+ ;; FIXME this needs a lot of rework
  (fn-traced [{:keys [db]} [_ ws]]
             (if (some #(= (:uri ws) (:uri %)) (:sockets db))
               (doall
@@ -127,10 +125,12 @@
                            (assoc (:sockets db)
                                   (.indexOf (:sockets db) ws)
                                   (merge ws {:socket (create-socket (:uri ws))
+                                             :type ["outbox" "inbox"]
                                              :status "connected"})))})
               (doall
                (println "uri not yet known")
                {:db (update db :sockets conj (merge ws {:socket (create-socket (:uri ws))
+                                                        :type ["outbox" "inbox"]
                                                         :status "connected"}))}))))
 
 (re-frame/reg-event-fx
@@ -784,13 +784,14 @@
                   search-term
                   "&query_by="
                   "name,about,description,creator")]
-     {:http-xhrio {:method :get
-                   :uri uri
-                   :headers {"x-typesense-api-key" "xyz"}
-                   :timeout 5000
-                   :response-format (ajax/json-response-format {:keywords? true})
-                   :on-success [::save-search-results]
-                   :on-failure [::failure]}})))
+     {:fetch {:method :get
+              :url uri
+              :mode :cors
+              :headers {"x-typesense-api-key" "xyz"}
+              :timeout 5000
+              :response-content-types {#"application/.*json" :json} #_(ajax/json-response-format {:keywords? true})
+              :on-success [::save-search-results]
+              :on-failure [::failure]}})))
 
 (defn sanitize-filter-term [term]
   (str/replace term #"[ ()]" " "))
@@ -827,25 +828,26 @@
            (str "&filter_by=" filter-by)))))
 
 (re-frame/reg-event-fx
-  ::handle-multi-filter-search
-  (fn [cofx [_ [filters search-term]]]
-    (let [_ (.log js/console (clj->js filters ) )
-          uri (build-url-for-multi-filter-search (str config/typesense-uri "search")
-                                   filters
-                                   search-term)
-          _ (.log js/console "uri" uri)]
-      {:http-xhrio {:method :get
-                    :uri uri
-                    :headers {"x-typesense-api-key" "xyz"}
-                    :timeout 5000
-                    :response-format (ajax/json-response-format {:keywords? true})
-                    :on-success [::save-search-results]
-                    :on-failure [::failure]}})))
+ ::handle-multi-filter-search
+ (fn [cofx [_ [filters search-term]]]
+   (let [_ (.log js/console (clj->js filters))
+         uri (build-url-for-multi-filter-search (str config/typesense-uri "search")
+                                                filters
+                                                search-term)
+         _ (.log js/console "uri" uri)]
+     {:fetch {:method :get
+              :url uri
+              :headers {"x-typesense-api-key" "xyz"}
+              :mode :cors
+              :timeout 5000
+              :response-content-types {#"application/.*json" :json}
+                    ; :response-format (ajax/json-response-format {:keywords? true})
+              :on-success [::save-search-results]
+              :on-failure [::failure]}})))
 
 (comment
   "http://localhost:8108/collections/amb/documents//collections/amb/documents/search?q=chemie&query_by=name,about,description,creator"
-  "http://localhost:8108/collections/amb/documents/search?q=biologie&query_by=name,about,description,creator&filter_by=about.id:=[https://w3id.org/kim/hochschulfaechersystematik/n42]&&learningResourceType.id:=[]"
-  )
+  "http://localhost:8108/collections/amb/documents/search?q=biologie&query_by=name,about,description,creator&filter_by=about.id:=[https://w3id.org/kim/hochschulfaechersystematik/n42]&&learningResourceType.id:=[]")
 
 (re-frame/reg-event-fx
  ::handle-filter-search

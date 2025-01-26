@@ -10,6 +10,7 @@
    [ied.opencard.views :as opencard]
    [ied.views.search :as search]
    [ied.views.resource :as resource]
+   [ied.views.relay-settings :as rs]
    [ied.components.modals :as modals]
    [ied.views.add :as add]
    [ied.components.resource :as resource-component]
@@ -134,58 +135,6 @@
 
 (defmethod routes/panels :event-feed-panel [] [event-feed-panel])
 
-;; relays
-(defn add-relay-form
-  [name uri]
-  (let [s (reagent/atom {:name name
-                         :uri uri})]
-    (fn []
-      [:form {:on-submit (fn [e]
-                           (.preventDefault e)
-                            ;; do something with the state @s
-                           )}
-       [:label {:for name} "Name: "]
-       [:input {:type :text :name :name
-                :value (:name @s)
-                :on-change (fn [e]
-                             (swap! s assoc :name (-> e .-target .-value)))}]
-       [:label {:for uri} "Uri: "]
-       [:input {:type :text :name :uri
-                :value (:uri @s)
-                :on-change (fn [e]
-                             (swap! s assoc :uri (-> e .-target .-value)))}]
-       [:button {:on-click #(re-frame/dispatch [::events/create-websocket {:name (:name @s)
-                                                                           :id (random-uuid)
-                                                                           :uri (:uri @s)}])}
-        "Add Relay"]])))
-
-(defn relays-panel
-  []
-  (let [sockets (re-frame/subscribe [::subs/sockets])]
-    [:div
-     [add-relay-form]
-
-     (if (> (count @sockets) 0)
-       [:ul
-        (doall
-         (for [socket @sockets]
-           [:li {:key (:id socket)}
-            [:span (:name socket)]
-            [:span (:status socket)]
-            [:button {:class "btn"
-                      :disabled (not= "connected" (:status socket))
-                      :on-click #(re-frame/dispatch [::events/load-events (:uri socket)])} "Load events"]
-            (if (not= (:status socket) "connected")
-              [:button {:class "btn"
-                        :on-click #(re-frame/dispatch [::events/connect-to-websocket (:uri socket)])} "Connect"]
-              [:button {:class "btn"
-                        :on-click #(re-frame/dispatch [::events/close-connection-to-websocket (:uri socket)])} "Disconnect"])
-
-            [:button {:class "btn btn-error"
-                      :on-click #(re-frame/dispatch [::events/remove-websocket socket])} "Remove relay"]]))]
-       [:p "No relays found"]
-       ;(re-frame/dispatch [::events/connect-to-default-relays])
-       )]))
 ;; shopping cart
 (defn shopping-cart []
   (let [selected-events @(re-frame/subscribe [::subs/selected-events])]
@@ -287,9 +236,9 @@
 
 ;; Settings
 (defn settings-panel []
-  [:div
-   [:h1 "Settings"]
-   [relays-panel]])
+  [:div {:class "w-3/4 mx-auto text-center"}
+   [:h1 {:class "text-lg mb-2"} "Settings"]
+   [rs/relays-panel]])
 
 (defmethod routes/panels :settings-panel [] [settings-panel])
 
