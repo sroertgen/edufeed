@@ -328,8 +328,9 @@
 (re-frame/reg-event-fx
  ::convert-amb-json-and-publish-as-nostr-event
  [(re-frame/inject-cofx  :now)]
- (fn-traced [cofx [_ json]]
-            (let [event (convert-amb-to-nostr-event json (:now cofx))]
+ (fn-traced [cofx [_ result]]
+            (let [json (:body result)
+                  event (convert-amb-to-nostr-event json (:now cofx))]
               {::sign-and-publish-event [event (-> cofx :db :sk)]})))
 
 (re-frame/reg-event-fx
@@ -608,12 +609,14 @@
 (re-frame/reg-event-fx
  ::publish-amb-uri-as-nostr-event
  (fn [db [_ uri]]
-   {:http-xhrio {:method :get
-                 :uri uri
-                 :timeout 8000
-                 :response-format (ajax/json-response-format {:keywords? true})
-                 :on-success [::convert-amb-json-and-publish-as-nostr-event]
-                 :on-failure (.log js/console "publishing amb uri as nostr did not work")}}))
+   {:fetch {:method :get
+            :url uri
+            :mode :cors
+            :credentials :omit
+            :timeout 8000
+            :response-content-types {#"application/.*json" :json}
+            :on-success [::convert-amb-json-and-publish-as-nostr-event]
+            :on-failure (.log js/console "publishing amb uri as nostr did not work")}}))
 
 (re-frame/reg-event-fx
  ::set-visit-timestamp
@@ -653,13 +656,14 @@
 
 (re-frame/reg-event-db
  ::prefill-metadata-form
- (fn [db [_ uri data]]
-   (if (and
-        (:id data)
-        (:about data))
-     (assoc db :resource-to-add data)
-     (doall (js/console.error "Not the right kind of data")
-            (re-frame/dispatch [::get-metadata-from-script-tag uri])))))
+ (fn [db [_ uri result]]
+   (let [data (:body result)]
+     (if (and
+          (:id data)
+          (:about data))
+       (assoc db :resource-to-add data)
+       (doall (js/console.error "Not the right kind of data")
+              (re-frame/dispatch [::get-metadata-from-script-tag uri]))))))
 
 (re-frame/reg-event-fx
  ::failure
@@ -668,8 +672,9 @@
 
 (re-frame/reg-event-db
  ::parse-text-for-script-tag
- (fn [db [_ uri data]]
-   (let [parser (js/DOMParser.)
+ (fn [db [_ uri result]]
+   (let [data (:body result)
+         parser (js/DOMParser.)
          doc (.parseFromString parser data "text/html")
          script-tag (.querySelector doc "script[type='application/ld+json']")]
      (if script-tag
@@ -681,29 +686,30 @@
  ::get-metadata-from-script-tag
  (fn [cofx [_ uri]]
    (println "now trying to get script tag..")
-   {:http-xhrio {:method :get
-                 :uri uri
-                 :timeout 3000
-                 :response-format (ajax/text-response-format)
-                 :on-success [::parse-text-for-script-tag uri]
-                 :on-failure [::failure]}}))
+   {:fetch {:method :get
+            :url uri
+            :timeout 3000
+            :response-content-types {#"application/.*json" :json}
+            :on-success [::parse-text-for-script-tag uri]
+            :on-failure [::failure]}}))
 
 (re-frame/reg-event-fx
  ::get-metadata-from-json
  (fn [cofx [_ uri]]
-   {:http-xhrio {:method :get
-                 :uri (if (str/ends-with? uri "json") ;; TODO elaborate this a bit more
-                        uri
-                        (str/replace uri #".html" ".json"))
-                 :timeout 3000
-                 :response-format (ajax/json-response-format {:keywords? true})
-                 :on-success [::prefill-metadata-form uri]
-                 :on-failure [::get-metadata-from-script-tag uri]}}))
+   {:fetch {:method :get
+            :url (if (str/ends-with? uri "json") ;; TODO elaborate this a bit more
+                   uri
+                   (str/replace uri #".html" ".json"))
+            :timeout 3000
+            :response-content-types {#"application/.*json" :json}
+            :on-success [::prefill-metadata-form uri]
+            :on-failure [::get-metadata-from-script-tag uri]}}))
 
 (re-frame/reg-event-db
  ::save-concept-scheme
- (fn [db [_ cs]]
-   (assoc-in db [:concept-schemes (:id cs)] cs)))
+ (fn [db [_ result]]
+   (let [cs (:body result)]
+     (assoc-in db [:concept-schemes (:id cs)] cs))))
 
 (comment
   (keyword "https://ww.googl-e.com/"))
@@ -724,25 +730,27 @@
 (re-frame/reg-event-fx
  ::skos-concept-scheme-from-uri
  (fn [cofx [_ uri]]
-   {:http-xhrio {:method :get
-                 :uri (jsonize-uri uri)
-                 :timeout 5000
-                 :response-format (ajax/json-response-format {:keywords? true})
-                 :on-success [::save-concept-scheme]
-                 :on-failure [::failure]}}))
+   {:fetch {:method :get
+            :url (jsonize-uri uri)
+            :timeout 5000
+            :response-content-types {#"application/.*json" :json}
+            :on-success [::save-concept-scheme]
+            :on-failure [::failure]}}))
 
 (re-frame/reg-event-fx
  ::fetch-missing-concept-schemes
  (fn [{:keys [db]} [_ missing-uris]]
    {:db db
-    :http-xhrio (map (fn [uri]
-                       {:method :get
-                        :uri (jsonize-uri uri)
-                        :timeout 5000
-                        :response-format (ajax/json-response-format {:keywords? true})
-                        :on-success [::save-concept-scheme]
-                        :on-failure [::failure]})
-                     missing-uris)}))
+    :fetch (map (fn [uri]
+                  {:method :get
+                   :mode :cors
+                   :credentials :omit
+                   :url (jsonize-uri uri)
+                   :timeout 5000
+                   :response-content-types {#"application/.*json" :json}
+                   :on-success [::save-concept-scheme]
+                   :on-failure [::failure]})
+                missing-uris)}))
 
 (re-frame/reg-event-db
  ::toggle-concept
@@ -787,9 +795,10 @@
      {:fetch {:method :get
               :url uri
               :mode :cors
+              :credentials :omit
               :headers {"x-typesense-api-key" "xyz"}
               :timeout 5000
-              :response-content-types {#"application/.*json" :json} #_(ajax/json-response-format {:keywords? true})
+              :response-content-types {#"application/.*json" :json}
               :on-success [::save-search-results]
               :on-failure [::failure]}})))
 
@@ -839,9 +848,9 @@
               :url uri
               :headers {"x-typesense-api-key" "xyz"}
               :mode :cors
+              :credentials :omit
               :timeout 5000
               :response-content-types {#"application/.*json" :json}
-                    ; :response-format (ajax/json-response-format {:keywords? true})
               :on-success [::save-search-results]
               :on-failure [::failure]}})))
 
@@ -863,20 +872,22 @@
                      filter-attribute
                      ":="
                      (sanitize-filter-term filter-term))))] ;; parantetheses seem to cause error when filtering
-     {:http-xhrio {:method :get
-                   :uri uri
-                   :headers {"x-typesense-api-key" "xyz"}
-                   :timeout 5000
-                   :response-format (ajax/json-response-format {:keywords? true})
-                   :on-success [::save-search-results]
-                   :on-failure [::failure]}})))
+     {:fetch {:method :get
+              :url uri
+              :mode :cors
+              :credentials :omit
+              :headers {"x-typesense-api-key" "xyz"}
+              :timeout 5000
+              :response-content-types {#"application/.*json" :json}
+              :on-success [::save-search-results]
+              :on-failure [::failure]}})))
 
 (re-frame/reg-event-db
  ::save-search-results
  (fn [db [_ results]]
-   (let [raw-result-events (map #(-> % :document :event_raw) (:hits results))]
+   (let [raw-result-events (map #(-> % :document :event_raw) (-> results :body :hits))]
      (-> db
-         (assoc  :search-results (:hits  results))
+         (assoc  :search-results (-> results :body :hits))
          (update :events into raw-result-events)))))
 
 (re-frame/reg-event-fx
