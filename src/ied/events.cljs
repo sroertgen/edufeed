@@ -731,6 +731,8 @@
  ::skos-concept-scheme-from-uri
  (fn [cofx [_ uri]]
    {:fetch {:method :get
+            :mode :cors
+            :credentials :omit
             :url (jsonize-uri uri)
             :timeout 5000
             :response-content-types {#"application/.*json" :json}

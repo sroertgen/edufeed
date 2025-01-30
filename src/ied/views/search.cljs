@@ -126,7 +126,7 @@
 
     ;;  TODO maybe put this in concept-scheme component?
     (fn []
-      [:div
+      [:div {:class "flex flex-row gap-2"}
        (doall
         (for [filter filters]
           ^{:key  (:scheme filter)}
@@ -163,9 +163,9 @@
         filters (re-frame/subscribe [::subs/active-filters])
         show-filter-bar (reagent/atom false)]
     (fn  []
-      [:div {:class "flex flex-col"}
+      [:div {:class "flex flex-col w-3/4"}
        [:div {:class "flex"} ;;TODO fix layout
-        [:form {:class "w-3/4"
+        [:form {:class "w-full"
                 :on-submit (fn [e]
                              (.preventDefault e)
                              (re-frame/dispatch [::events/handle-multi-filter-search [@filters @search-term]]))}
@@ -187,9 +187,10 @@
              :clip-rule "evenodd"}]]]]
         [:button {:on-click #(reset! show-filter-bar (not @show-filter-bar))
                   :class "btn"} [icons/filter-icon] "Filter"]]
-       [active-filters]
-       (when @show-filter-bar
-         [filter-bar])])))
+       [:div
+        [active-filters]
+        (when @show-filter-bar
+          [filter-bar])]])))
 
 (defn search-view-panel []
   (let [grouped-results (re-frame/subscribe [::subs/grouped-search-results])]
