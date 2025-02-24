@@ -483,8 +483,8 @@
  ::delete-list
  [(re-frame/inject-cofx  :now)]
  (fn [cofx [_ l]]
-   (let [{:keys [list-kinds ]} (:db cofx)
-         all-list-kinds (concat list-kinds )
+   (let [{:keys [list-kinds]} (:db cofx)
+         all-list-kinds (concat list-kinds)
          deletion-event {:kind 5
                          :created_at (:now cofx)
                          :content ""
@@ -674,19 +674,23 @@
             :on-failure [::failure]}}))
 
 (re-frame/reg-event-fx
- ::fetch-missing-concept-schemes
- (fn [{:keys [db]} [_ missing-uris]]
-   {:db db
-    :fetch (map (fn [uri]
-                  {:method :get
-                   :mode :cors
-                   :credentials :omit
-                   :url (jsonize-uri uri)
-                   :timeout 5000
-                   :response-content-types {#"application/.*json" :json}
-                   :on-success [::save-concept-scheme]
-                   :on-failure [::failure]})
-                missing-uris)}))
+ ::fetch-missing-concept-scheme
+ (fn [{:keys [db]} [_ missing-uri]]
+   (let [known-concept-schemes (keys (get db :concept-schemes {}))]
+     (if (some #(= missing-uri %) known-concept-schemes)
+       {:db db}
+       {:db db
+        :fetch {:method :get
+                :mode :cors
+                :credentials :omit
+                :url (jsonize-uri missing-uri)
+                :timeout 5000
+                :response-content-types {#"application/.*json" :json}
+                :on-success [::save-concept-scheme]
+                :on-failure [::failure]}}))))
+
+(comment
+  (empty? ()))
 
 (re-frame/reg-event-db
  ::toggle-concept

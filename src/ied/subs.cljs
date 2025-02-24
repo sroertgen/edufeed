@@ -266,6 +266,14 @@
 ;                    [cs (get-in db [:concept-schemes cs]) nil])
 ;                  schemes))))
 
+(defn concept-scheme
+  "Args:
+  - `scheme`: A URI pointing to a skohub vocabulary.
+  
+  Returns the concept scheme."
+  [db [_ scheme]]
+  (get-in db [:concept-schemes scheme]))
+
 (defn concept-schemes-sub
   "Args:
   - `schemes`: Array of strings identifying the concept schemes.
@@ -277,16 +285,17 @@
                 schemes)))
 
 (re-frame/reg-sub
-  ::concept-schemes
-  concept-schemes-sub)
-
-(comment
-  (get-in {:concept-schemes {"1" :yes "2" :no}} [:concept-schemes "3"] nil))
+ ::concept-schemes
+ concept-schemes-sub)
 
 (re-frame/reg-sub
-  ::active-filters
-  (fn [db] 
-    (:md-form-resource db)))
+ ::concept-scheme
+ concept-scheme)
+
+(re-frame/reg-sub
+ ::active-filters
+ (fn [db]
+   (:md-form-resource db)))
 
 (re-frame/reg-sub
  ::toggled-concepts

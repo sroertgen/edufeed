@@ -112,13 +112,17 @@
   (println (pr-str (search-concepts data query fields))))
 
 (defn skos-multiselect-component
-  [[cs field field-title]]
-  (let [search-input (reagent/atom "")]
+  [[scheme field field-title]]
+  (let [search-input (reagent/atom "")
+        cs (re-frame/subscribe
+            [::subs/concept-scheme scheme])]
+    (re-frame/dispatch
+     [::events/fetch-missing-concept-scheme scheme])
     (fn []
-      (let [filtered-cs (search-concepts cs @search-input [[:prefLabel :de]])] ;; TODO needs to be otherwise configured for multi language stuff
+      (let [filtered-cs (search-concepts @cs @search-input [[:prefLabel :de]])] ;; TODO needs to be otherwise configured for multi language stuff
         [:div
          {:class "dropdown w-full"
-          :key (:id cs)}
+          :key (:id @cs)}
          [:div
           {:tabIndex "0"
            :role "button"

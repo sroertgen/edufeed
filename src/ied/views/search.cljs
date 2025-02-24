@@ -116,21 +116,21 @@
     :title "Typ"}])
 
 (defn filter-bar []
-  (let [concept-schemes (re-frame/subscribe
-                         [::subs/concept-schemes (map :scheme filters)])]
-    (re-frame/dispatch
-     [::events/fetch-missing-concept-schemes
-      (->> @concept-schemes
-           (filter (fn [[_ v]] (nil? v)))
-           (map first))])
+  (fn []
+    (let [concept-schemes (re-frame/subscribe
+                           [::subs/concept-schemes (map :scheme filters)])]
+      ;; FIXME put this in multiselect component?
+      (re-frame/dispatch
+       [::events/fetch-missing-concept-scheme
+        (->> @concept-schemes
+             (filter (fn [[_ v]] (nil? v)))
+             (map first))])
 
-    ;;  TODO maybe put this in concept-scheme component?
-    (fn []
       [:div {:class "flex flex-row gap-2"}
        (doall
         (for [filter filters]
           ^{:key  (:scheme filter)}
-          [skos-multiselect-component [(get @concept-schemes (:scheme filter))
+          [skos-multiselect-component [(:scheme filter)
                                        (:field filter)
                                        (:title filter)]]))])))
 

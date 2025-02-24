@@ -184,7 +184,7 @@
 
                    (doall
                     (for [cs (keys concept-schemes)]
-                      ^{:key cs} [skos-multiselect-component [(get concept-schemes cs)
+                      ^{:key cs} [skos-multiselect-component [cs
                                                               field
                                                               field-title]])))
                  (= :array field-type)
