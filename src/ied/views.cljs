@@ -7,7 +7,6 @@
    [ied.subs :as subs]
    [ied.nostr :as nostr]
    [ied.components.icons :as icons]
-   [ied.opencard.views :as opencard]
    [ied.views.search :as search]
    [ied.views.resource :as resource]
    [ied.views.relay-settings :as rs]
@@ -255,8 +254,7 @@
         #_[:li [:a  "My Network"]]
         (when @pk
           [:li  [:a {:on-click #(re-frame/dispatch [::events/navigate [:npub-view :npub (nostr/get-npub-from-pk @pk)]])}
-                 "Bookmarks"]])
-        #_[:li [:a {:on-click #(re-frame/dispatch [::events/navigate [:opencard-view]])} "Opencard"]]]])))
+                 "Bookmarks"]])]])))
 
 ;; Home
 (defn home-panel []

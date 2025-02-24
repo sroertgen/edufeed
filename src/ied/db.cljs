@@ -2,14 +2,6 @@
   (:require
    [ied.config :as config]))
 
-(def default-opencard-board
-  {:id 1
-   :title "Default board"
-   :lists [{:id 1 :items [{:id 1 :content "*Item 1*"} {:id 2 :content "Item 2"}]}
-           {:id 2 :items [{:id 3 :content "Item 3"} {:id 4 :content "Item 4"}]}
-           {:id 3 :items [{:id 5 :content "Item 5"} {:id 6 :content "Item 6"}]}
-           {:id 4 :items [{:id 7 :content "Item 7"} {:id 8 :content "Item 8"}]}]})
-
 (def default-db
   {:name "re-frame"
    :current-path nil
@@ -22,8 +14,6 @@
    :pk nil
    :sk nil
    :list-kinds [30001 30004]
-   :opencard-kinds [30043 30044 30045]
-   :opencard-boards [default-opencard-board]
    :follow-sets [30000]
    :resource-to-add nil
    :default-relays (concat

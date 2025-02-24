@@ -479,78 +479,12 @@
                             :tags tags}]
      {::sign-and-publish-event [create-list-event (-> cofx :db :sk)]})))
 
-;;;;;;;;;;;;;;;;;;;;;;;;
-;; Opencard stuff
-;;;;;;;;;;;;;;;;;;;;;;;;
-
-(re-frame/reg-event-fx
- ::create-new-opencard-index
- [(re-frame/inject-cofx  :now)]
- (fn [cofx [_ name]]
-   (let [tags [["d" (cleanup-list-name name)]
-               ["title" name]]
-         create-opencard-index-event {:kind 30043
-                                      :created_at (:now cofx)
-                                      :content ""
-                                      :tags tags}]
-     {::sign-and-publish-event [create-opencard-index-event (-> cofx :db :sk)]})))
-
-;; create, sign, publish list event
-;; add signed list event to opencard-index
-(re-frame/reg-event-fx
- ::add-opencard-list-to-index
- (fn [cofx [_ [name opencard-index-old]]]
-   (let [opencard-list {:kind 30044
-                        :created_at (:now cofx)
-                        :content ""
-                        :tags [["d" (cleanup-list-name name)]
-                               ["title" name]]}
-         opencard-index (update opencard-index-old :created_at (:now cofx))]
-     {::add-opencard-list-to-index-fx [opencard-list opencard-index (-> cofx :db :sk)]})))
-
-(re-frame/reg-fx
- ::add-opencard-list-to-index-fx
- (fn [opencard-list opencard-index sk]
-   (p/let [opencard-list-signed (sign-event opencard-list sk)
-           opencard-index (update opencard-index :tags (fn [tags]
-                                                         (conj tags ["a" (nostr/build-tag-for-adressable-event opencard-list-signed)])))
-           opencard-index-signed (sign-event opencard-index sk)]
-     (re-frame/dispatch [::publish-signed-event opencard-list-signed])
-     (re-frame/dispatch [::publish-signed-event opencard-index-signed]))))
-
-(re-frame/reg-event-fx
- ::remove-opencard-list-from-index
- [(re-frame/inject-cofx  :now)]
- (fn [cofx [_ opencard-list-to-delete opencard-index]]
-   (let [opencard-index-new {:kind 30043
-                             :created_at (:now cofx)
-                             :content ""
-                             :tags (filter #(not= (:id opencard-list-to-delete) (:id %)) (:tags opencard-index))}]
-     {::sign-and-publish-event [opencard-index-new (-> cofx :db :sk)]
-      ::delete-list [opencard-list-to-delete]})))
-
-;; TODO add 30045 opencard note to opencard-list
-(re-frame/reg-event-fx
- ::add-opencard-note-to-list
- [(re-frame/inject-cofx :now)]
- (fn [cofx [_ [name content] opencard-list]]
-   (let [tags [["d" (cleanup-list-name name)]
-               ["title" name]] ;; TODO depending on the note content we might need to add more tags like references to other events and so on
-         opencard-note-event {:kind 30045
-                              :created_at (:now cofx)
-                              :content content
-                              :tags tags}]
-     {::sign-and-publish-event [opencard-note-event (-> cofx :db :sk)]})))
-
-;; TODO delete-opencard-index
-;; should we just remove the index or anything associated? maybe ask the user first
-
 (re-frame/reg-event-fx
  ::delete-list
  [(re-frame/inject-cofx  :now)]
  (fn [cofx [_ l]]
-   (let [{:keys [list-kinds opencard-kinds]} (:db cofx)
-         all-list-kinds (concat list-kinds opencard-kinds)
+   (let [{:keys [list-kinds ]} (:db cofx)
+         all-list-kinds (concat list-kinds )
          deletion-event {:kind 5
                          :created_at (:now cofx)
                          :content ""

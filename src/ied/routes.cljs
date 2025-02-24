@@ -21,16 +21,14 @@
      ["" [#"npub1[ac-hj-np-z02-9]{58}" :npub]] {"" :npub-view
                                                 "/" :npub-view}
      ["" [#"naddr1[ac-hj-np-z02-9]+" :naddr]] {"" :naddr-view
-                                                "/" :naddr-view}
-     "opencard" :opencard-view}]))
+                                               "/" :naddr-view}}]))
 
 (comment
   (navigate! (parse "/npub1r30l8j4vmppvq8w23umcyvd3vct4zmfpfkn4c7h2h057rmlfcrmq9xt9ma/"))
   (navigate! (parse "/naddr1r30l8j4vmppvq8w23umcyvd3vct4zmfpfkn4c7h2h057rmlfcrmq9xt9ma/"))
   (apply url-for [:npub-view :npub "npub1r30l8j4vmppvq8w23umcyvd3vct4zmfpfkn4c7h2h057rmlfcrmq9xt9ma"])
   (apply url-for [:naddr-view :naddr "naddr1r30l8j4vmppvq8w23umcyvd3vct4zmfpfkn4c7h2h057rmlfcrmq9xt9ma"])
-  (apply url-for [:home])
-  (navigate! (parse "/opencard")))
+  (apply url-for [:home]))
 
 (defn parse
   [url]
