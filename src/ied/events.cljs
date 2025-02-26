@@ -172,14 +172,14 @@
 ;; render connect / disconnect button based on status
 (re-frame/reg-event-fx
  ::close-connection-to-websocket
- (fn-traced [{:keys [db]} [_ ws-uri]]
-            {::close-connection-to-websocket-fx [ws-uri (:sockets db)]}))
+ (fn-traced [{:keys [db]} [_ socket]]
+            {::close-connection-to-websocket-fx [socket (:sockets db)]}))
 
 (re-frame/reg-fx
  ::close-connection-to-websocket-fx
- (fn [[ws-uri  sockets]]
-   (ws/close (:socket (first (filter #(= ws-uri (:uri %)) sockets))))
-   (re-frame/dispatch [::update-ws-connection-status ws-uri "disconnected"])))
+ (fn [[socket sockets]]
+   (ws/close (:socket socket))
+   (re-frame/dispatch [::update-ws-connection-status (:uri socket) "disconnected"])))
 
 (re-frame/reg-event-fx
  ::connect-to-default-relays
@@ -220,13 +220,30 @@
 (re-frame/reg-event-fx
  ::remove-websocket
  (fn-traced [{:keys [db]} [_ socket]]
-            {::remove-websocket-fx [(:id socket) (:sockets db)]}))
+            {::close-websocket [socket (:sockets db)]}))
+
+(defn filter-events-by-relay-uri
+  [events uri]
+  (sorted-set-by
+   (fn [a b] (compare (:created_at a) (:created_at b)))
+   (for [event events
+         :let [relays (:relays event)]
+         :when (not= relays [uri])]
+     (update event :relays #(vec (remove #{uri} %))))))
+
+(re-frame/reg-event-db
+ ::remove-events-of-relay
+ (fn [db [_ uri]]
+   (let [filtered-events (filter-events-by-relay-uri (:events db) uri)]
+     (merge db {:events filtered-events}))))
 
 (re-frame/reg-fx
- ::remove-websocket-fx
- (fn [[id sockets]]
-   (let [filtered (filter #(not= id (:id %)) sockets)] ;; TODO maybe this can also be done using the URI
-     (re-frame/dispatch [::update-websockets filtered]))))
+ ::close-websocket
+ (fn [[socket sockets]]
+   (ws/close (:socket socket))
+   (do (re-frame/dispatch  [::update-websockets
+                            (filter #(not= (:id socket) (:id %)) sockets)])
+       (re-frame/dispatch [::remove-events-of-relay (:uri socket)]))))
 
 (re-frame/reg-event-db
  ::toggle-show-add-event

@@ -13,8 +13,7 @@
                          :uri uri})]
     (fn []
       [:form {:on-submit (fn [e]
-                           (.preventDefault e)
-                           )}
+                           (.preventDefault e))}
        [:div {:class "flex flex-row gap-2"}
         [:label  {:class "input input-bordered flex items-center gap-2"
                   :for name} "Name: "
@@ -49,25 +48,28 @@
         (doall
          (for [socket @sockets]
            [:li {:key (:id socket)}
-            [:div {:class "flex flex-row items-center gap-2 w-full"}
-             [:div {:class "flex flex-row items-center w-1/4 gap-2"}
-              [:span (:name socket)]
+            [:div {:class "flex flex-row items-center justify-between gap-2 w-3/4"}
+             [:div {:class "flex flex-row items-center gap-2"}
               [:div {:class "text-center"}
                (case (:status socket)
                  "connected" [icons/checkmark]
                  "error" [icons/close-icon]
-                 [:span (:status socket)])]]
-             [:button {:class "btn"
-                       :disabled (not= "connected" (:status socket))
-                       :on-click #(re-frame/dispatch [::events/load-events (:uri socket)])} "Load events"]
-             (if (not= (:status socket) "connected")
-               [:button {:class "btn"
-                         :on-click #(re-frame/dispatch [::events/connect-to-websocket (:uri socket)])} "Connect"]
-               [:button {:class "btn"
-                         :on-click #(re-frame/dispatch [::events/close-connection-to-websocket (:uri socket)])} "Disconnect"])
+                 "disconnected" [icons/disconnected]
+                 [:span (:status socket)])]
+              [:span (:name socket)]
+              [:span (str " (" (:uri socket) ")")]]
+             [:div
+              [:button {:class "btn"
+                        :disabled (not= "connected" (:status socket))
+                        :on-click #(re-frame/dispatch [::events/load-events (:uri socket)])} "Load events"]
+              (if (not= (:status socket) "connected")
+                [:button {:class "btn"
+                          :on-click #(re-frame/dispatch [::events/connect-to-websocket (:uri socket)])} "Connect"]
+                [:button {:class "btn"
+                          :on-click #(re-frame/dispatch [::events/close-connection-to-websocket socket])} "Disconnect"])
 
-             [:button {:class "btn btn-error"
-                       :on-click #(re-frame/dispatch [::events/remove-websocket socket])} "Remove relay"]]]))]
+              [:button {:class "btn btn-error"
+                        :on-click #(re-frame/dispatch [::events/remove-websocket socket])} "Remove relay"]]]]))]
        [:p "No relays found"]
        ;(re-frame/dispatch [::events/connect-to-default-relays])
        )]))
