@@ -59,7 +59,6 @@
      (.log js/console "got a relay list!"))))
 
 (defn insert-event-in-events [event events]
-  (.log js/console "Inserting event" (clj->js event))
   (let [event-id (:id event)]
     (if-let [existing-event (first (filter #(= (:id %) event-id) events))]
       (let [existing-relays (set (:relays existing-event))
