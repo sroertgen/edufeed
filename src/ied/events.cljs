@@ -58,21 +58,45 @@
    (when (= 30002 (:kind event))
      (.log js/console "got a relay list!"))))
 
+(defn insert-event-in-events [event events]
+  (.log js/console "Inserting event" (clj->js event))
+  (let [event-id (:id event)]
+    (if-let [existing-event (first (filter #(= (:id %) event-id) events))]
+      (let [existing-relays (set (:relays existing-event))
+            new-relays (set (:relays event))
+            combined-relays (into existing-relays new-relays)]
+        ;; Only update if there are new relays
+        (if (= (count existing-relays) (count combined-relays))
+          ;; No new relays, return unchanged events
+          events
+          ;; New relays found, update the event and resort
+          (let [updated-event (assoc existing-event :relays (vec combined-relays))
+                events-without-existing (remove #(= (:id %) event-id) events)]
+            (into (sorted-set-by
+                   (fn [a b] (compare (:created_at a) (:created_at b)))
+                   updated-event)
+                  events-without-existing))))
+      ;; If the event doesn't exist yet, just add it to the collection
+      (into (sorted-set-by
+             (fn [a b] (compare (:created_at a) (:created_at b)))
+             event)
+            events))))
+
 ;; Database Event?
 (re-frame/reg-event-fx
  ::save-event
- ;; TODO if EOSE retrieved end connection identified by uri
  (fn-traced [{:keys [db]} [_ [uri raw-event]]]
-            (let [event (nth raw-event 2 raw-event)]
-
-              (when (and
-                     (= (first raw-event) "EVENT"))
+            (when (and
+                   (= (first raw-event) "EVENT"))
+              (let [event (nth raw-event 2 raw-event)
+                    updated-events (insert-event-in-events (merge event {:relays [uri]}) (:events db))]
                 {:fx [[::add-confetti]
                       [::relay-list event]]
-                 :db (update db :events conj event)}))))
+                 :db (merge db {:events updated-events})}))))
 
 (defn handlers
   [ws-uri]
+  ;; TODO store relay info with event
   {:on-message (fn [e] (re-frame/dispatch [::save-event [ws-uri (-> (.-data e)
                                                                     js/JSON.parse
                                                                     (js->clj :keywordize-keys true))]]))
